@@ -7,12 +7,15 @@ import { paginate } from "../utils/paginate";
 import { Link } from "react-router-dom";
 import _ from "lodash";
 import MoviesTable from "./moviesTable";
+import SearchBox from "./common/searchBox";
 class Movies extends Component {
   state = {
     movies: [],
     genres: [],
     currentPage: 1,
     pageSize: 4,
+    selectedGenre: null,
+    searchQuery: "",
     sortColumn: { path: "title", order: "asc" }
   };
 
@@ -39,7 +42,11 @@ class Movies extends Component {
   };
 
   handleGenreSelect = genre => {
-    this.setState({ selectedGenre: genre, currentPage: 1 });
+    this.setState({ selectedGenre: genre, searchQuery: "", currentPage: 1 });
+  };
+
+  handleSearch = query => {
+    this.setState({ selectedGenre: null, searchQuery: query, currentPage: 1 });
   };
 
   handleSort = sortColumn => {
@@ -47,12 +54,22 @@ class Movies extends Component {
   };
 
   getPagedData = () => {
-    const { pageSize, currentPage, sortColumn, selectedGenre } = this.state;
+    const {
+      pageSize,
+      currentPage,
+      sortColumn,
+      selectedGenre,
+      searchQuery,
+      movies: allMovies
+    } = this.state;
 
-    const filtered =
-      selectedGenre && selectedGenre._id
-        ? this.state.movies.filter(m => m.genre._id === selectedGenre._id)
-        : this.state.movies;
+    let filtered = allMovies;
+    if (searchQuery)
+      filtered = allMovies.filter(m =>
+        m.title.toLowerCase().startsWith(searchQuery.toLowerCase())
+      );
+    else if (selectedGenre && selectedGenre._id)
+      filtered = allMovies.filter(m => m.genre._id === selectedGenre._id);
 
     const sorted = _.orderBy(filtered, [sortColumn.path], [sortColumn.order]);
 
@@ -63,7 +80,13 @@ class Movies extends Component {
 
   render() {
     const { length: count } = this.state.movies;
-    const { pageSize, currentPage, sortColumn, selectedGenre } = this.state;
+    const {
+      pageSize,
+      currentPage,
+      sortColumn,
+      selectedGenre,
+      searchQuery
+    } = this.state;
 
     if (count === 0)
       return (
@@ -90,6 +113,7 @@ class Movies extends Component {
             New Movies
           </Link>
           <p>There is {totalCount} movies in the database</p>
+          <SearchBox onChange={this.handleSearch} value={searchQuery} />
           <MoviesTable
             movies={movies}
             onDelete={this.handleDelete}
